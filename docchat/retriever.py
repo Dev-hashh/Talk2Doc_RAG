@@ -1,4 +1,3 @@
-# print("Loading retriever module...")
 class Retriever:
     def __init__(self, embedder, vector_store):
         self.embedder = embedder
@@ -6,5 +5,5 @@ class Retriever:
 
     def retrieve(self, query, k=3):
         query_embedding = self.embedder.embed_query(query)
-        results = self.vector_store.search(query_embedding, k=k)
-        return results
+        return self.vector_store.search(query_embedding, k=k)
+
