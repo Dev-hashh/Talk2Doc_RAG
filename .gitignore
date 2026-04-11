@@ -10,6 +10,6 @@ wheels/
 faiss.index
 venv/
 *.txt
-
+.env
 # Virtual environments
 .venv
