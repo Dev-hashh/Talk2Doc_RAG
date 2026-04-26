@@ -8,6 +8,7 @@ REQUIRED_MODULES = {
     "faiss": "faiss-cpu",
     "numpy": "numpy",
     "requests": "requests",
+    "dotenv": "python-dotenv",
 }
 
 
