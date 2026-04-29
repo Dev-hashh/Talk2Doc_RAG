@@ -35,13 +35,13 @@ def _generate_groq(prompt: str) -> str:
     response.raise_for_status()
     return response.json()["choices"][0]["message"]["content"].strip()
 
-def _generate_ollama(prompt: str) -> str:
+def _generate_ollama(prompt: str, model_name: str, url: str) -> str:
     payload = {
-        "model": OLLAMA_MODEL,
+        "model": model_name or OLLAMA_MODEL,
         "prompt": prompt,
         "stream": False,
     }
-    response = requests.post(OLLAMA_URL, json=payload, timeout=60)
+    response = requests.post(url or OLLAMA_URL, json=payload, timeout=60)
     response.raise_for_status()
     return response.json()["response"].strip()
 
@@ -67,7 +67,7 @@ Answer:"""
         if USE_GROQ:
             return _generate_groq(prompt)
         else:
-            return _generate_ollama(prompt)
+            return _generate_ollama(prompt, self.model_name, self.url)
   
       
 # Test with USE_GROQ=false, mock the requests.post call
@@ -82,5 +82,4 @@ if __name__ == "__main__":
         g = Generator()
         answer = g.generate("France's capital is Paris.", "What is the capital of France?")
         assert answer == "Paris"
-
 
