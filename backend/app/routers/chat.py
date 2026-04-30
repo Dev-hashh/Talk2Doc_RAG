@@ -35,7 +35,7 @@ async def chat(
             index_name=body.index_name,
             top_k=body.top_k,
             model=body.model,
-            user_id=user["id"],
+            user_id=user.id,   # ✅ Pass the user ID to the service layer
         )
     except FileNotFoundError as exc:
         raise HTTPException(

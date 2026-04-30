@@ -4,20 +4,19 @@ from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime, f
 from sqlalchemy.orm import sessionmaker, declarative_base, Session
 
 from app.config import settings
+#from backend.app.config import settings
 
 
 # 🔗 Use DATABASE_URL (Postgres or SQLite fallback)
-DATABASE_URL = getattr(settings, "database_url", None)
+DATABASE_URL = settings.DATABASE_URL
 
 if not DATABASE_URL:
-    # fallback to sqlite (for local dev)
-    DATABASE_URL = f"sqlite:///{settings.db_path}"
-
+    raise ValueError("DATABASE_URL is missing!")
 
 # 🧠 Engine
 engine = create_engine(
     DATABASE_URL,
-    connect_args={"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {},
+    connect_args={"sslmode": "require"},
 )
 
 
@@ -54,5 +53,8 @@ def get_db() -> Session:
 
 
 # 🚀 Init DB (create tables)
-def init_db() -> None:
+def init_db():
+    
     Base.metadata.create_all(bind=engine)
+    print("[DB] Initialized database and created tables.")
+    print(f"[DB] Using database: {DATABASE_URL}")

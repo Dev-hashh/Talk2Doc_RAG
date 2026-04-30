@@ -8,17 +8,19 @@ load_dotenv()
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pathlib import Path
 
-import os
+BASE_DIR = Path(__file__).resolve().parent.parent.parent  # goes to talk2doc/
 
-database_url = os.getenv("DATABASE_URL")
-print("DATABASE_URL:", database_url)
 class Settings(BaseSettings):
+    DATABASE_URL: str 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=BASE_DIR / ".env",
         env_file_encoding="utf-8",
         case_sensitive=False,
         extra="ignore",
     )
+    
+
+        
 
     # ── Ollama ────────────────────────────────────────────────────────────────
     ollama_url: str = "http://localhost:11434/api/generate"

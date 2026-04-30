@@ -58,6 +58,7 @@ def answer_question(
     user_id: str | None = None,   # ✅ NEW
 ) -> Tuple[str, str, list[dict]]:
 
+    print(f"DEBUG user_id={user_id!r}, type={type(user_id)}") 
     stem = index_name or settings.default_index_stem
     top_k = top_k or settings.default_top_k
     model = model or settings.model_name
