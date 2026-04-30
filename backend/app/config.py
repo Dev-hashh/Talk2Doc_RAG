@@ -2,10 +2,16 @@
 Central configuration loaded from environment variables / .env file.
 All tuneable values live here so routers and services never hard-code anything.
 """
-from pathlib import Path
+from dotenv import load_dotenv
+load_dotenv()
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from pathlib import Path
 
+import os
 
+database_url = os.getenv("DATABASE_URL")
+print("DATABASE_URL:", database_url)
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env",

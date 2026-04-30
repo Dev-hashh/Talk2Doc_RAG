@@ -1,11 +1,3 @@
-"""
-main.py
-FastAPI application entry point.
-  - Registers all routers
-  - Configures CORS
-  - Adds a health-check endpoint
-  - Ensures the index storage directory exists on startup
-"""
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -19,15 +11,25 @@ from app.routers import auth, chat, index, ingest
 # ── Lifespan (startup / shutdown) ─────────────────────────────────────────────
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: make sure index directory exists
+    # ✅ Ensure index storage exists
     settings.index_path.mkdir(parents=True, exist_ok=True)
+
+    # ✅ Initialize DB (creates tables in Supabase/Postgres)
     init_db()
-    print(f"[Talk2Doc] Index directory: {settings.index_path.resolve()}")
-    print(f"[Talk2Doc] SQLite DB       : {settings.db_path.resolve()}")
-    print(f"[Talk2Doc] Ollama URL     : {settings.ollama_url}")
-    print(f"[Talk2Doc] Default model  : {settings.model_name}")
+
+    print(f"[Talk2Doc] Index directory : {settings.index_path.resolve()}")
+
+    # 🔥 Updated logging
+    if getattr(settings, "database_url", None):
+        print(f"[Talk2Doc] Database (Postgres) : connected")
+    else:
+        print(f"[Talk2Doc] Database (SQLite)  : {settings.db_path.resolve()}")
+
+    print(f"[Talk2Doc] Ollama URL      : {settings.ollama_url}")
+    print(f"[Talk2Doc] Default model   : {settings.model_name}")
+
     yield
-    # Shutdown: nothing to clean up
+    # Shutdown: nothing needed
 
 
 # ── App factory ───────────────────────────────────────────────────────────────
@@ -65,6 +67,7 @@ app.include_router(index.router)
 async def health():
     return {
         "status": "ok",
+        "database": "postgres" if getattr(settings, "database_url", None) else "sqlite",
         "ollama_url": settings.ollama_url,
         "model": settings.model_name,
         "index_dir": str(settings.index_path.resolve()),
@@ -73,4 +76,6 @@ async def health():
 
 @app.get("/", tags=["Health"], include_in_schema=False)
 async def root():
-    return {"message": "Talk2Doc RAG API is running. Visit /docs for the API reference."}
+    return {
+        "message": "Talk2Doc RAG API is running. Visit /docs for the API reference."
+    }

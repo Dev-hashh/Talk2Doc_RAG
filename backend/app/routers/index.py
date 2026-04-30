@@ -22,7 +22,7 @@ router = APIRouter(prefix="/indexes", tags=["Indexes"])
     description="Returns every (*.index + *.pkl) pair found in the index directory.",
 )
 async def get_indexes(user: Row = Depends(get_current_user)) -> IndexListResponse:
-    indexes = list_indexes()
+    indexes = list_indexes(user["id"])
     return IndexListResponse(indexes=indexes, total=len(indexes))
 
 
@@ -35,7 +35,7 @@ async def get_index(
     name: str,
     user: Row = Depends(get_current_user),
 ) -> IndexInfo:
-    matches = [i for i in list_indexes() if i.name == name]
+    matches = [i for i in list_indexes(user["id"]) if i.name == name]
     if not matches:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

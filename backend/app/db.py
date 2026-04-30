@@ -1,38 +1,58 @@
 from __future__ import annotations
 
-import sqlite3
-from collections.abc import Iterator
+from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime, func, Index
+from sqlalchemy.orm import sessionmaker, declarative_base, Session
 
 from app.config import settings
 
 
-def get_connection() -> sqlite3.Connection:
-    conn = sqlite3.connect(settings.db_path)
-    conn.row_factory = sqlite3.Row
-    return conn
+# 🔗 Use DATABASE_URL (Postgres or SQLite fallback)
+DATABASE_URL = getattr(settings, "database_url", None)
+
+if not DATABASE_URL:
+    # fallback to sqlite (for local dev)
+    DATABASE_URL = f"sqlite:///{settings.db_path}"
 
 
-def iter_connection() -> Iterator[sqlite3.Connection]:
-    conn = get_connection()
+# 🧠 Engine
+engine = create_engine(
+    DATABASE_URL,
+    connect_args={"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {},
+)
+
+
+# 🧱 Session
+SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+
+
+# 🧬 Base model
+Base = declarative_base()
+
+
+# 👤 User Model
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False)
+    email = Column(String, unique=True, nullable=False, index=True)
+    password_hash = Column(Text, nullable=False)
+    created_at = Column(DateTime, server_default=func.now())
+
+
+# Optional explicit index (already covered by index=True)
+Index("idx_users_email", User.email)
+
+
+# 🔌 Dependency (FastAPI)
+def get_db() -> Session:
+    db = SessionLocal()
     try:
-        yield conn
+        yield db
     finally:
-        conn.close()
+        db.close()
 
 
+# 🚀 Init DB (create tables)
 def init_db() -> None:
-    settings.db_path.parent.mkdir(parents=True, exist_ok=True)
-
-    with get_connection() as conn:
-        conn.execute(
-            """
-            CREATE TABLE IF NOT EXISTS users (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT NOT NULL,
-                email TEXT NOT NULL UNIQUE,
-                password_hash TEXT NOT NULL,
-                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-            )
-            """
-        )
-        conn.execute("CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)")
+    Base.metadata.create_all(bind=engine)

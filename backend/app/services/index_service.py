@@ -1,10 +1,3 @@
-"""
-Index metadata helpers.
-
-The ingest and chat services own the heavy RAG work. This module only inspects
-the saved FAISS index and pickle metadata files so the API can show what is
-available to the frontend.
-"""
 from __future__ import annotations
 
 import pickle
@@ -14,8 +7,21 @@ from app.config import settings
 from app.schemas.models import DocumentInfo, IndexInfo
 
 
-def _load_chunks(stem: str) -> list[dict]:
-    with open(settings.metadata_file(stem), "rb") as f:
+# 🔐 NEW: per-user directory
+def _user_index_path(user_id: str) -> Path:
+    return settings.index_path / str(user_id)
+
+
+def _index_file(user_id: str, stem: str) -> Path:
+    return _user_index_path(user_id) / f"{stem}.index"
+
+
+def _metadata_file(user_id: str, stem: str) -> Path:
+    return _user_index_path(user_id) / f"{stem}.pkl"
+
+
+def _load_chunks(user_id: str, stem: str) -> list[dict]:
+    with open(_metadata_file(user_id, stem), "rb") as f:
         return pickle.load(f)
 
 
@@ -37,28 +43,31 @@ def _document_infos(chunks: list[dict]) -> list[DocumentInfo]:
     ]
 
 
-def index_exists(stem: str) -> bool:
-    """Return true when both the FAISS index and metadata files exist."""
-    return settings.index_file(stem).exists() and settings.metadata_file(stem).exists()
+def index_exists(stem: str, user_id: str) -> bool:
+    return _index_file(user_id, stem).exists() and _metadata_file(user_id, stem).exists()
 
 
-def list_indexes() -> list[IndexInfo]:
-    """Return every complete (*.index + *.pkl) pair in the index directory."""
+def list_indexes(user_id: str) -> list[IndexInfo]:
     indexes: list[IndexInfo] = []
 
-    for idx_file in sorted(settings.index_path.glob("*.index")):
+    user_path = _user_index_path(user_id)
+    if not user_path.exists():
+        return []
+
+    for idx_file in sorted(user_path.glob("*.index")):
         stem = idx_file.stem
-        metadata_file = settings.metadata_file(stem)
+        metadata_file = _metadata_file(user_id, stem)
 
         if not metadata_file.exists():
             continue
 
         try:
-            chunks = _load_chunks(stem)
+            chunks = _load_chunks(user_id, stem)
         except Exception:
             chunks = []
 
         documents = _document_infos(chunks)
+
         indexes.append(
             IndexInfo(
                 name=stem,
@@ -74,7 +83,6 @@ def list_indexes() -> list[IndexInfo]:
     return indexes
 
 
-def delete_index(stem: str) -> None:
-    """Delete the index and metadata files for a saved index stem."""
-    settings.index_file(stem).unlink(missing_ok=True)
-    settings.metadata_file(stem).unlink(missing_ok=True)
+def delete_index(stem: str, user_id: str) -> None:
+    _index_file(user_id, stem).unlink(missing_ok=True)
+    _metadata_file(user_id, stem).unlink(missing_ok=True)

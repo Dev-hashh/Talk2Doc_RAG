@@ -9,7 +9,9 @@ import time
 from sqlite3 import IntegrityError, Row
 
 from app.config import settings
-from app.db import get_connection
+from sqlalchemy.orm import Session
+from app.db import SessionLocal
+from app.db import User
 
 
 def _b64url_encode(raw: bytes) -> str:
@@ -78,42 +80,25 @@ def verify_access_token(token: str) -> int | None:
         return None
 
 
-def create_user(name: str, email: str, password: str) -> Row:
-    normalized_email = email.strip().lower()
 
-    try:
-        with get_connection() as conn:
-            cursor = conn.execute(
-                """
-                INSERT INTO users (name, email, password_hash)
-                VALUES (?, ?, ?)
-                """,
-                (name.strip(), normalized_email, hash_password(password)),
-            )
-            user_id = cursor.lastrowid
-            row = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
-    except IntegrityError as exc:
-        raise ValueError("An account with this email already exists.") from exc
-
-    if row is None:
-        raise RuntimeError("User creation failed.")
-
-    return row
+def create_user(db: Session, name: str, email: str, password_hash: str):
+    user = User(name=name, email=email, password_hash=password_hash)
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return user
 
 
-def authenticate_user(email: str, password: str) -> Row | None:
-    with get_connection() as conn:
-        row = conn.execute(
-            "SELECT * FROM users WHERE email = ?",
-            (email.strip().lower(),),
-        ).fetchone()
-
-    if row is None or not verify_password(password, row["password_hash"]):
+def authenticate_user(db: Session, email: str, password: str):
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
         return None
 
-    return row
+    if not verify_password(password, user.password_hash):
+        return None
+
+    return user
 
 
-def get_user(user_id: int) -> Row | None:
-    with get_connection() as conn:
-        return conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
+def get_user(db: Session, email: str):
+    return db.query(User).filter(User.email == email).first()

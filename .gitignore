@@ -9,6 +9,7 @@ wheels/
 *.pkl
 *.db
 faiss.index
+.index
 venv/
 *.txt
 .env

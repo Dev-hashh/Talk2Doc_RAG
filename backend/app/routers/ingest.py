@@ -69,6 +69,7 @@ async def ingest_document(
             index_name=index_name,
             chunk_size=chunk_size,
             overlap=overlap,
+            user_id=user["id"]
         )
     except ValueError as exc:
         raise HTTPException(
