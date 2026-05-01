@@ -3,6 +3,7 @@ from __future__ import annotations
 import pickle
 from pathlib import Path
 from typing import Tuple
+from xml.parsers.expat import model
 
 import faiss
 import numpy as np
@@ -78,7 +79,13 @@ def answer_question(
 
     context = "\n\n---\n\n".join(chunk["text"] for chunk in retrieved)
 
-    generator = Generator(model_name=model, url=settings.ollama_url)
+    #generator = Generator(model_name=model, url=settings.ollama_url)
+    if settings.USE_GROQ:
+        from docchat.groq_generator import GroqGenerator
+        generator = GroqGenerator(api_key=settings.GROQ_API_KEY)
+    else:
+        generator = Generator(model_name=model, url=settings.ollama_url)
+        
     answer: str = generator.generate_answer(context=context, question=question)
 
     return answer, stem, retrieved

@@ -2,8 +2,9 @@
 Central configuration loaded from environment variables / .env file.
 All tuneable values live here so routers and services never hard-code anything.
 """
-from dotenv import load_dotenv
-load_dotenv()
+
+# env_path = BASE_DIR / ".env"
+
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pathlib import Path
@@ -11,7 +12,7 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent.parent  # goes to talk2doc/
 
 class Settings(BaseSettings):
-    DATABASE_URL: str 
+    DATABASE_URL: str = "sqlite:///talk2doc.db"
     model_config = SettingsConfigDict(
         env_file=BASE_DIR / ".env",
         env_file_encoding="utf-8",
@@ -19,7 +20,10 @@ class Settings(BaseSettings):
         extra="ignore",
     )
     
-
+    # Groq
+    USE_GROQ: bool = False
+    GROQ_API_KEY: str = ""
+    GROQ_MODEL: str = "llama-3.3-70b-versatile"
         
 
     # ── Ollama ────────────────────────────────────────────────────────────────
@@ -41,7 +45,7 @@ class Settings(BaseSettings):
     # Resolved relative to the project root (two levels above this file).
     index_dir: str = "indexes"
     database_path: str = "talk2doc.db"
-    auth_secret: str = "change-me-in-production"
+    auth_secret: str = ""
     auth_token_minutes: int = 60 * 24 * 7
 
     @property
