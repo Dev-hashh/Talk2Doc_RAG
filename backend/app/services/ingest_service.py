@@ -13,6 +13,7 @@ from app.config import settings
 from docchat.document_loader import load_pdf
 from docchat.chunker import chunk_pages
 from docchat.embedder import Embedder
+from docchat.storage import upload_index
 
 
 _embedder: Embedder | None = None
@@ -83,6 +84,9 @@ def ingest_pdf(
     base_path = _user_index_path(user_id)
     index_path = base_path / f"{stem}.index"
     metadata_path = base_path / f"{stem}.pkl"
+    
+    #Upload to Supabase Storage
+    upload_index(user_id=str(user_id), stem=stem, index=index, chunks=chunks)
 
     faiss.write_index(index, str(index_path))
 

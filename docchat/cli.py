@@ -1,6 +1,8 @@
 import argparse
-import pickle
 from pathlib import Path
+
+from docchat.storage import download_index, download_index, upload_index
+from docchat.vector_store import VectorStore
 
 from .bootstrap import ensure_dependencies
 
@@ -16,6 +18,8 @@ def build_parser():
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     ingest_parser = subparsers.add_parser("ingest", help="Chunk a PDF and build the FAISS index.")
+    ingest_parser.add_argument("--user-id", required=True, help="User ID for Supabase storage.")
+    ingest_parser.add_argument("--index-stem", default="faiss", help="Index name stem (no extension).")
     ingest_parser.add_argument("--pdf", required=True, help="Path to the PDF to ingest.")
     ingest_parser.add_argument("--index", default=str(DEFAULT_INDEX_PATH), help="Where to save the FAISS index.")
     ingest_parser.add_argument("--metadata", default=str(DEFAULT_METADATA_PATH), help="Where to save chunk metadata.")
@@ -46,24 +50,30 @@ def load_retrieval_stack(index_path, metadata_path):
     from .retriever import Retriever
     from .vector_store import VectorStore
 
-    index_file = Path(index_path)
-    metadata_file = Path(metadata_path)
+    # index_file = Path(index_path)
+    # metadata_file = Path(metadata_path)
 
-    if not index_file.exists():
-        raise SystemExit(f"Index not found: {index_file}")
+    # if not index_file.exists():
+    #     raise SystemExit(f"Index not found: {index_file}")
 
-    if not metadata_file.exists():
-        raise SystemExit(f"Metadata not found: {metadata_file}")
+    # if not metadata_file.exists():
+    #     raise SystemExit(f"Metadata not found: {metadata_file}")
 
-    print("Loading index...")
+    # print("Loading index...")
+    # vector_store = VectorStore()
+    # vector_store.load(str(index_file))
+
+    # print("Loading metadata...")
+    # with metadata_file.open("rb") as file:
+    #     chunks = pickle.load(file)
+
+    # vector_store.documents = chunks
+    
+    print("Loading index from Supabase...")
+    from docchat.storage import download_index
+    from .vector_store import VectorStore
     vector_store = VectorStore()
-    vector_store.load(str(index_file))
-
-    print("Loading metadata...")
-    with metadata_file.open("rb") as file:
-        chunks = pickle.load(file)
-
-    vector_store.documents = chunks
+    vector_store.index, vector_store.documents = download_index(user_id=user_id, stem=stem)
 
     embedder = Embedder()
     retriever = Retriever(embedder, vector_store)
@@ -96,12 +106,9 @@ def run_ingest(args):
     vector_store = VectorStore()
     vector_store.add(doc_embeddings, chunks)
 
-    print("Saving FAISS index...")
-    vector_store.save(args.index)
-
-    print("Saving metadata...")
-    with Path(args.metadata).open("wb") as file:
-        pickle.dump(chunks, file)
+    print("Saving to Supabase...")
+    from docchat.storage import upload_index
+    upload_index(user_id=args.user_id, stem=args.index_stem, index=vector_store.index, chunks=chunks)
 
     print("Ingestion complete.")
     return 0
