@@ -1,0 +1,39 @@
+# # Core
+# python-dotenv>=1.0.0
+# pydantic>=2.5.0
+
+# # LLM + RAG
+# langchain>=0.1.16
+# langchain-community>=0.0.34
+# langchain-openai>=0.1.3
+# openai>=1.14.0
+
+# # Vector DB
+# chromadb>=0.4.24
+
+# # Embeddings & NLP
+# tiktoken>=0.6.0
+
+# # Document loaders
+# pypdf>=4.1.0
+# unstructured>=0.12.6
+
+# # Utilities
+# numpy>=1.26.0
+# tqdm>=4.66.0
+
+# # Notebooks (dev only, but fine to keep)
+# jupyter>=1.0.0
+# ipykernel>=6.29.0
+
+
+ollama==0.6.1
+pymupdf
+sentence-transformers
+faiss-cpu
+numpy
+python-dotenv
+fastapi
+uvicorn[standard]
+requests
+supabase==2.29.0
