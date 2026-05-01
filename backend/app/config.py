@@ -41,12 +41,18 @@ class Settings(BaseSettings):
     default_top_k: int = 5
 
     # ── Storage ───────────────────────────────────────────────────────────────
+    #Supabase Storage
+    SUPABASE_URL: str = ""
+    SUPABASE_SERVICE_KEY: str = ""
+    
     # Directory where .index and .pkl files are stored.
     # Resolved relative to the project root (two levels above this file).
     index_dir: str = "indexes"
     database_path: str = "talk2doc.db"
     auth_secret: str = ""
     auth_token_minutes: int = 60 * 24 * 7
+    
+    
 
     @property
     def index_path(self) -> Path:
