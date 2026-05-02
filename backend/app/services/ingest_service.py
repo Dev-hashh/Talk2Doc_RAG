@@ -81,16 +81,13 @@ def ingest_pdf(
     index.add(vectors.astype(np.float32))
 
     # 🔐 SAVE PER USER
-    # base_path = _user_index_path(user_id)
-    # index_path = base_path / f"{stem}.index"
-    # metadata_path = base_path / f"{stem}.pkl"
+    base_path = _user_index_path(user_id)
+    index_path = base_path / f"{stem}.index"
+    metadata_path = base_path / f"{stem}.pkl"
     
     #Upload to Supabase Storage
     upload_index(user_id=str(user_id), stem=stem, index=index, chunks=chunks)
 
-    faiss.write_index(index, str(index_path))
-
-    with open(metadata_path, "wb") as f:
-        pickle.dump(chunks, f)
+   
 
     return stem, len(chunks)

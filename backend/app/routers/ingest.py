@@ -6,6 +6,7 @@ from fastapi import APIRouter, File, Form, HTTPException, UploadFile, status
 from fastapi import Depends
 from sqlite3 import Row
 from typing import Optional
+import traceback
 
 from app.deps import get_current_user
 from app.schemas.models import IngestResponse
@@ -77,9 +78,12 @@ async def ingest_document(
             detail=str(exc),
         )
     except Exception as exc:
+        print("\n Full traceback for debugging:\n")
+        traceback.print_exc()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Ingest failed: {exc}",
+        #     detail=f"Ingest failed: {exc}",
+            detail=str(exc)
         )
 
     return IngestResponse(

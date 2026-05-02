@@ -1,28 +1,14 @@
 from __future__ import annotations
 
-import pickle
 from pathlib import Path
 
-from app.config import settings
 from app.schemas.models import DocumentInfo, IndexInfo
-
-
-# 🔐 NEW: per-user directory
-def _user_index_path(user_id: str) -> Path:
-    return settings.index_path / str(user_id)
-
-
-def _index_file(user_id: str, stem: str) -> Path:
-    return _user_index_path(user_id) / f"{stem}.index"
-
-
-def _metadata_file(user_id: str, stem: str) -> Path:
-    return _user_index_path(user_id) / f"{stem}.pkl"
-
-
-def _load_chunks(user_id: str, stem: str) -> list[dict]:
-    with open(_metadata_file(user_id, stem), "rb") as f:
-        return pickle.load(f)
+from docchat.storage import (
+    download_index,
+    delete_index_files,
+    list_index_stems,
+    index_exists_in_supabase,
+)
 
 
 def _document_infos(chunks: list[dict]) -> list[DocumentInfo]:
@@ -44,25 +30,16 @@ def _document_infos(chunks: list[dict]) -> list[DocumentInfo]:
 
 
 def index_exists(stem: str, user_id: str) -> bool:
-    return _index_file(user_id, stem).exists() and _metadata_file(user_id, stem).exists()
+    return index_exists_in_supabase(user_id, stem)
 
 
 def list_indexes(user_id: str) -> list[IndexInfo]:
+    stems = list_index_stems(user_id)
     indexes: list[IndexInfo] = []
 
-    user_path = _user_index_path(user_id)
-    if not user_path.exists():
-        return []
-
-    for idx_file in sorted(user_path.glob("*.index")):
-        stem = idx_file.stem
-        metadata_file = _metadata_file(user_id, stem)
-
-        if not metadata_file.exists():
-            continue
-
+    for stem in stems:
         try:
-            chunks = _load_chunks(user_id, stem)
+            _, chunks = download_index(user_id, stem)
         except Exception:
             chunks = []
 
@@ -71,9 +48,9 @@ def list_indexes(user_id: str) -> list[IndexInfo]:
         indexes.append(
             IndexInfo(
                 name=stem,
-                index_file=str(idx_file),
-                metadata_file=str(metadata_file),
-                size_bytes=idx_file.stat().st_size + metadata_file.stat().st_size,
+                index_file=f"{user_id}/{stem}.index",
+                metadata_file=f"{user_id}/{stem}.pkl",
+                size_bytes=0,
                 chunk_count=len(chunks),
                 document_count=len(documents),
                 documents=documents,
@@ -84,5 +61,4 @@ def list_indexes(user_id: str) -> list[IndexInfo]:
 
 
 def delete_index(stem: str, user_id: str) -> None:
-    _index_file(user_id, stem).unlink(missing_ok=True)
-    _metadata_file(user_id, stem).unlink(missing_ok=True)
+    delete_index_files(user_id, stem)
