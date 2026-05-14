@@ -14,10 +14,8 @@ if not DATABASE_URL:
     raise ValueError("DATABASE_URL is missing!")
 
 # 🧠 Engine
-engine = create_engine(
-    DATABASE_URL,
-    connect_args={"sslmode": "require"},
-)
+connect_args = {"sslmode": "require"} if DATABASE_URL.startswith("postgres") else {}
+engine = create_engine(DATABASE_URL, connect_args=connect_args)
 
 
 # 🧱 Session
@@ -89,4 +87,4 @@ def init_db():
     
     Base.metadata.create_all(bind=engine)
     print("[DB] Initialized database and created tables.")
-    print(f"[DB] Using database: {DATABASE_URL}")
+    print("[DB] Using database: postgres" if DATABASE_URL.startswith("postgres") else "[DB] Using database: sqlite")

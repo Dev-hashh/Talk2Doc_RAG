@@ -75,6 +75,7 @@ function AuthScreen({ mode, error, isSubmitting, onModeChange, onSubmit }) {
               onChange={updateField}
               placeholder={isSignup ? "At least 8 characters" : "Your password"}
               minLength={isSignup ? 8 : 1}
+              maxLength={72}
               required
             />
           </label>

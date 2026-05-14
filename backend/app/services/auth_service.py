@@ -12,17 +12,26 @@ from app.db import User
 from app.config import settings
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+BCRYPT_MAX_BYTES = 72
 
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 24 hours
 
 
 # 🔐 Password utils
+def _validate_password_for_bcrypt(password: str) -> None:
+    if len(password.encode("utf-8")) > BCRYPT_MAX_BYTES:
+        raise ValueError("Password must be 72 bytes or fewer.")
+
+
 def hash_password(password: str) -> str:
+    _validate_password_for_bcrypt(password)
     return pwd_context.hash(password)
 
 
 def verify_password(plain: str, hashed: str) -> bool:
+    if len(plain.encode("utf-8")) > BCRYPT_MAX_BYTES:
+        return False
     return pwd_context.verify(plain, hashed)
 
 
@@ -35,7 +44,7 @@ def create_access_token(user_id: int, expires_delta: Optional[timedelta] = None)
 
 # 👤 User queries
 def get_user_by_email(db: Session, email: str) -> Optional[User]:
-    return db.query(User).filter(User.email == email).first()
+    return db.query(User).filter(User.email == email.strip().lower()).first()
 
 
 def get_user_by_id(db: Session, user_id: int) -> Optional[User]:  # ✅ takes Session, not module
@@ -54,12 +63,14 @@ def authenticate_user(db: Session, email: str, password: str) -> Optional[User]:
 
 # 📝 Register
 def create_user(db: Session, name: str, email: str, password: str) -> User:
-    existing = get_user_by_email(db, email)
+    normalized_email = email.strip().lower()
+    existing = get_user_by_email(db, normalized_email)
     if existing:
         raise ValueError("Email already registered")
+    _validate_password_for_bcrypt(password)
     user = User(
-        name=name,
-        email=email,
+        name=name.strip(),
+        email=normalized_email,
         password_hash=hash_password(password),
     )
     db.add(user)

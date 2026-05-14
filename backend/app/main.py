@@ -1,19 +1,4 @@
 
-from dotenv import load_dotenv
-from pathlib import Path
-import os
-
-# Go to project root (talk2doc/)
-BASE_DIR = Path(__file__).resolve().parent.parent.parent
-env_path = BASE_DIR / ".env"
-
-print("Looking for .env at:", env_path)
-
-# Load .env from root
-load_dotenv(BASE_DIR / ".env")
-
-print("DATABASE_URL from env:", os.getenv("DATABASE_URL"))
-
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -36,7 +21,7 @@ async def lifespan(app: FastAPI):
     print(f"[Talk2Doc] Index directory : {settings.index_path.resolve()}")
 
     # 🔥 Updated logging
-    if getattr(settings, "database_url", None):
+    if settings.DATABASE_URL.startswith("postgres"):
         print(f"[Talk2Doc] Database (Postgres) : connected")
     else:
         print(f"[Talk2Doc] Database (SQLite)  : {settings.db_path.resolve()}")
@@ -83,9 +68,7 @@ app.include_router(index.router)
 async def health():
     return {
         "status": "ok",
-        "database": "postgres" if settings.DATABASE_URL else "sqlite",
-        "database_url": settings.DATABASE_URL if settings.DATABASE_URL else str(settings.database_path),
-
+        "database": "postgres" if settings.DATABASE_URL.startswith("postgres") else "sqlite",
         "ollama_url": settings.ollama_url,
         "model": settings.model_name,
         "index_dir": str(settings.index_path.resolve()),

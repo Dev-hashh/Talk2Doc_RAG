@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.db import get_db
 from app.services.auth_service import authenticate_user, create_access_token, get_user_by_id, create_user
@@ -14,14 +14,14 @@ from app.deps import get_current_user
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 class LoginRequest(BaseModel):
-    email: str
-    password: str
+    email: str = Field(..., min_length=3, max_length=255)
+    password: str = Field(..., min_length=1, max_length=72)
     
     
 class SignupRequest(BaseModel):
-    name: str
-    email: str
-    password: str
+    name: str = Field(..., min_length=1, max_length=80)
+    email: str = Field(..., min_length=3, max_length=255)
+    password: str = Field(..., min_length=8, max_length=72)
 
 
 @router.post("/signup", status_code=status.HTTP_201_CREATED)
@@ -29,7 +29,12 @@ def signup(body: SignupRequest, db: Session = Depends(get_db)):
     try:
         user = create_user(db, body.name, body.email, body.password)
     except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
+        status_code = (
+            status.HTTP_409_CONFLICT
+            if str(exc) == "Email already registered"
+            else status.HTTP_400_BAD_REQUEST
+        )
+        raise HTTPException(status_code=status_code, detail=str(exc))
 
     return {
         "access_token": create_access_token(user.id),  # ✅ dot notation

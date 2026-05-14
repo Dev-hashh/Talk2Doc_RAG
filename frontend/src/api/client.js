@@ -32,7 +32,10 @@ async function request(path, options = {}) {
     : await response.text();
 
   if (!response.ok) {
-    const message = typeof body === "object" && body?.detail ? body.detail : body;
+    const detail = typeof body === "object" ? body?.detail : body;
+    const message = Array.isArray(detail)
+      ? detail.map((item) => item?.msg ?? String(item)).join(" ")
+      : detail;
     throw new Error(message || `Request failed with ${response.status}`);
   }
 
