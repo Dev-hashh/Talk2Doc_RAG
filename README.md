@@ -58,6 +58,41 @@ Install dependencies:
 python -m pip install -r requirements.txt
 ```
 
+## Docker
+
+The app can run as two containers: FastAPI backend on port `8000` and Vite frontend on port `5173`.
+
+Make sure the project root has a `.env` file with your existing Supabase and auth settings, including:
+
+```text
+DATABASE_URL=...
+SUPABASE_URL=...
+SUPABASE_SERVICE_KEY=...
+AUTH_SECRET=...
+```
+
+You can start from the sample file:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Start everything:
+
+```powershell
+docker compose up --build
+```
+
+Open the app:
+
+```text
+http://localhost:5173
+```
+
+The frontend talks to the backend at `http://localhost:8000`. The backend uses the hosted Supabase services from `.env`; Docker does not start a local Postgres database.
+
+When Docker is used, the backend reaches a local Ollama instance through `host.docker.internal`. Keep Ollama running on the host before asking questions, or set `USE_GROQ=true` with your Groq settings in `.env`.
+
 ## Requirements
 
 - Python 3.12+

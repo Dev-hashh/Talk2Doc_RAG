@@ -60,13 +60,16 @@ export const apiClient = {
 
   listIndexes: async () => request("/indexes"),
 
-  chat: async ({ question, indexName, topK = 5 }) =>
+  listConversations: async () => request("/chat/conversations"),
+
+  chat: async ({ question, indexName, conversationId, topK = 5 }) =>
     request("/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         question,
         index_name: indexName,
+        conversation_id: conversationId,
         top_k: topK,
       }),
     }),

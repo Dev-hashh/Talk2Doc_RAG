@@ -53,6 +53,10 @@ class ChatRequest(BaseModel):
         default=None,
         description="Which FAISS index to query. Omit to use the default index.",
     )
+    conversation_id: Optional[str] = Field(
+        default=None,
+        description="Existing saved conversation to append to. Omit to create one.",
+    )
     top_k: int = Field(default=5, ge=1, le=20, description="Number of chunks to retrieve")
     model: Optional[str] = Field(
         default=None,
@@ -71,10 +75,34 @@ class ChatResponse(BaseModel):
     answer: str
     index_name: str
     question: str
+    conversation_id: str
     sources: List[SourceInfo] = Field(
         default_factory=list,
         description="Retrieved chunks used to form the answer.",
     )
+
+
+class SavedChatMessage(BaseModel):
+    id: str
+    role: str
+    author: str
+    time: str
+    text: str
+    citations: List[str] = Field(default_factory=list)
+
+
+class SavedChatConversation(BaseModel):
+    id: str
+    index_id: str
+    index_name: str
+    title: str
+    created_at: str
+    updated_at: str
+    messages: List[SavedChatMessage] = Field(default_factory=list)
+
+
+class ChatHistoryResponse(BaseModel):
+    conversations: List[SavedChatConversation] = Field(default_factory=list)
 
 
 # ── Indexes ──────────────────────────────────────────────────────────────────

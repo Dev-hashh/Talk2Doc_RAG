@@ -1,0 +1,16 @@
+.git
+.env
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+frontend/node_modules/
+frontend/dist/
+backend/__pycache__/
+indexes/
+*.db
+*.pkl
+*.index
+vite-dev.log
+vite-dev.err.log

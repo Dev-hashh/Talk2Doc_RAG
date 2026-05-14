@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime, func, Index
+from sqlalchemy import create_engine, Column, ForeignKey, Integer, String, Text, DateTime, func, Index
 from sqlalchemy.orm import sessionmaker, declarative_base, Session
 
 from app.config import settings
@@ -41,6 +41,38 @@ class User(Base):
 
 # Optional explicit index (already covered by index=True)
 Index("idx_users_email", User.email)
+
+
+class ChatConversation(Base):
+    __tablename__ = "chat_conversations"
+
+    id = Column(String, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    index_name = Column(String, nullable=False, index=True)
+    title = Column(String, nullable=False)
+    created_at = Column(DateTime, server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
+
+
+class ChatMessage(Base):
+    __tablename__ = "chat_messages"
+
+    id = Column(String, primary_key=True, index=True)
+    conversation_id = Column(
+        String,
+        ForeignKey("chat_conversations.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    role = Column(String, nullable=False)
+    author = Column(String, nullable=False)
+    text = Column(Text, nullable=False)
+    citations_json = Column(Text, nullable=False, default="[]")
+    created_at = Column(DateTime, server_default=func.now(), nullable=False)
+
+
+Index("idx_chat_conversations_user_updated", ChatConversation.user_id, ChatConversation.updated_at)
+Index("idx_chat_messages_conversation_created", ChatMessage.conversation_id, ChatMessage.created_at)
 
 
 # 🔌 Dependency (FastAPI)

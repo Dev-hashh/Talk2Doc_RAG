@@ -84,6 +84,11 @@
   color: #fde68a;
 }
 
+.history-panel {
+  padding: 16px 12px 8px;
+  border-bottom: 1px solid #1b1b20;
+}
+
 .index-panel {
   min-height: 0;
   flex: 1;
@@ -139,8 +144,14 @@
   color: #a1a1aa;
 }
 
+.icon-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
 .index-list,
-.document-list {
+.document-list,
+.history-list {
   display: grid;
   gap: 6px;
 }
@@ -171,6 +182,59 @@
   color: inherit;
   text-align: left;
   transition: background-color 160ms ease, border-color 160ms ease, transform 160ms ease;
+}
+
+.history-list {
+  max-height: 240px;
+  overflow: auto;
+  padding-right: 2px;
+}
+
+.history-card {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  min-height: 38px;
+  padding: 9px 8px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: #d4d4d8;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 160ms ease, border-color 160ms ease;
+}
+
+.history-card:hover,
+.history-card-active {
+  border-color: #27272f;
+  background: rgba(39, 39, 47, 0.58);
+}
+
+.history-card-active {
+  border-color: rgba(246, 189, 59, 0.28);
+  background: rgba(246, 189, 59, 0.06);
+}
+
+.history-card i {
+  color: #f6bd3b;
+  font-size: 0.78rem;
+}
+
+.history-card span {
+  overflow: hidden;
+  font-size: 0.78rem;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.history-card small {
+  color: #71717a;
+  font-size: 0.66rem;
 }
 
 .index-card:hover,

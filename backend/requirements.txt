@@ -7,6 +7,12 @@ python-multipart>=0.0.9        # required for File / Form uploads
 pydantic>=2.7.0
 pydantic-settings>=2.3.0
 
+# Database / auth
+sqlalchemy>=2.0.0
+psycopg2-binary>=2.9.9
+python-jose[cryptography]>=3.3.0
+passlib[bcrypt]>=1.7.4
+
 # ── RAG core (already in docchat's own requirements) ──────────────────────────
 faiss-cpu>=1.8.0
 numpy>=1.26.0

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import "./App.css";
 import { apiClient, clearStoredToken, getStoredToken, setStoredToken } from "./api/client";
 import AuthScreen from "./components/AuthScreen";
+import ChatHistory from "./components/ChatHistory";
 import ChatWindow from "./components/ChatWindow";
 import IndexSelector from "./components/IndexSelector";
 import UploadPanel from "./components/UploadPanel";
@@ -107,7 +108,11 @@ function App() {
 
   const activeIndex = indexes.find((index) => index.id === activeIndexId) ?? null;
   const ingest = useIngest(activeIndex, loadIndexes);
-  const chat = useChat(activeIndex);
+  const chat = useChat(activeIndex, user);
+  const handleSelectConversation = (conversation) => {
+    setActiveIndexId(conversation.indexId);
+    chat.selectConversation(conversation.id);
+  };
 
   if (isCheckingAuth) {
     return (
@@ -157,6 +162,15 @@ function App() {
             <i className="pi pi-sign-out" aria-hidden="true" />
           </button>
         </div>
+
+        <ChatHistory
+          conversations={chat.conversations}
+          activeConversationId={chat.activeConversationId}
+          onSelect={handleSelectConversation}
+          onNewChat={chat.startNewConversation}
+          disabled={!activeIndex}
+          error={chat.historyError}
+        />
 
         <IndexSelector
           indexes={indexes}
