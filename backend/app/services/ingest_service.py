@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import os
-import pickle
 import tempfile
 from pathlib import Path
 from typing import Tuple
@@ -27,12 +25,6 @@ def _get_embedder() -> Embedder:
 
 
 # 🔐 NEW
-def _user_index_path(user_id: str) -> Path:
-    path = settings.index_path / str(user_id)
-    path.mkdir(parents=True, exist_ok=True)
-    return path
-
-
 def _load_pages_from_upload(pdf_bytes: bytes, pdf_filename: str) -> list[dict]:
     suffix = Path(pdf_filename).suffix or ".pdf"
 
@@ -81,10 +73,6 @@ def ingest_pdf(
     index.add(vectors.astype(np.float32))
 
     # 🔐 SAVE PER USER
-    base_path = _user_index_path(user_id)
-    index_path = base_path / f"{stem}.index"
-    metadata_path = base_path / f"{stem}.pkl"
-    
     #Upload to Supabase Storage
     upload_index(user_id=str(user_id), stem=stem, index=index, chunks=chunks)
 

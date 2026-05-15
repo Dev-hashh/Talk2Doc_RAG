@@ -4,7 +4,6 @@ import sys
 
 REQUIRED_MODULES = {
     "pypdf": "pypdf",
-    "sentence_transformers": "sentence-transformers",
     "faiss": "faiss-cpu",
     "numpy": "numpy",
     "requests": "requests",

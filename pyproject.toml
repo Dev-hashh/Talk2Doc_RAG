@@ -9,5 +9,9 @@ dependencies = [
     "numpy",
     "pypdf>=4.1.0",
     "requests",
+]
+
+[project.optional-dependencies]
+transformer-embeddings = [
     "sentence-transformers",
 ]

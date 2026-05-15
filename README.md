@@ -3,7 +3,7 @@
 `docchat` is a local PDF question-answering CLI built with:
 
 - `pypdf` for PDF text extraction
-- `sentence-transformers` for embeddings
+- low-memory hashing embeddings by default, with optional `sentence-transformers`
 - `FAISS` for vector search
 - `Ollama` for answer generation
 
@@ -58,6 +58,12 @@ Install dependencies:
 python -m pip install -r requirements.txt
 ```
 
+For transformer-based embeddings on a larger host, install the optional extra and set `EMBEDDING_MODEL` to a Sentence Transformers model name:
+
+```powershell
+python -m pip install ".[transformer-embeddings]"
+```
+
 ## Docker
 
 The app can run as two containers: FastAPI backend on port `8000` and Vite frontend on port `5173`.
@@ -69,6 +75,7 @@ DATABASE_URL=...
 SUPABASE_URL=...
 SUPABASE_SERVICE_KEY=...
 AUTH_SECRET=...
+EMBEDDING_MODEL=hashing
 ```
 
 You can start from the sample file:

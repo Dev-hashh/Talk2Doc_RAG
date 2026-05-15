@@ -7,12 +7,10 @@ services:
       - .env
     environment:
       CORS_ORIGINS: '["http://localhost:5173","http://127.0.0.1:5173"]'
-      INDEX_DIR: /app/indexes
+      INDEX_DIR: /tmp/talk2doc-indexes
       OLLAMA_URL: http://host.docker.internal:11434/api/generate
     ports:
       - "8000:8000"
-    volumes:
-      - ./indexes:/app/indexes
     extra_hosts:
       - "host.docker.internal:host-gateway"
     healthcheck:

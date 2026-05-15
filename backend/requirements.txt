@@ -17,7 +17,6 @@ bcrypt==4.0.1
 # ── RAG core (already in docchat's own requirements) ──────────────────────────
 faiss-cpu>=1.8.0
 numpy>=1.26.0
-sentence-transformers>=3.0.0
 pypdf>=4.2.0
 requests>=2.32.0               # Ollama HTTP calls inside docchat.generator
 

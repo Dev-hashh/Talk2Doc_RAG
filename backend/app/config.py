@@ -6,8 +6,8 @@ All tuneable values live here so routers and services never hard-code anything.
 # env_path = BASE_DIR / ".env"
 
 
-from pydantic_settings import BaseSettings, SettingsConfigDict
 from pathlib import Path
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent  # goes to talk2doc/
 
@@ -31,7 +31,7 @@ class Settings(BaseSettings):
     model_name: str = "deepseek-v3.1:671b-cloud"
 
     # ── Embeddings ────────────────────────────────────────────────────────────
-    embedding_model: str = "BAAI/bge-small-en"   # matches docchat Embedder default
+    embedding_model: str = "hashing"   # use BAAI/bge-small-en on hosts with enough RAM
 
     # ── Chunking defaults ─────────────────────────────────────────────────────
     default_chunk_size: int = 500
@@ -61,6 +61,10 @@ class Settings(BaseSettings):
         return p
 
     @property
+    def configured_index_path(self) -> Path:
+        return Path(self.index_dir)
+
+    @property
     def db_path(self) -> Path:
         return Path(self.database_path)
 
@@ -74,7 +78,8 @@ class Settings(BaseSettings):
         return self.index_path / f"{stem}.pkl"
 
     # ── CORS ─────────────────────────────────────────────────────────────────
-    cors_origins: list[str] = ["*"]
+    #cors_origins: list[str] = ["*"]
+    cors_origins: list[str] = ["https://talk2doc.onrender.com"]
 
 
 settings = Settings()
