@@ -1,51 +1,84 @@
-# docchat
+# Talk2Doc
 
-`docchat` is a local PDF question-answering CLI built with:
+Talk2Doc is a PDF question-answering app. Upload a PDF, build a FAISS index, and chat with the document through a FastAPI backend and Vite frontend.
+
+The app uses:
 
 - `pypdf` for PDF text extraction
-- low-memory hashing embeddings by default, with optional `sentence-transformers`
+- low-memory hashing embeddings by default
 - `FAISS` for vector search
-- `Ollama` for answer generation
+- Supabase Postgres for users/auth data
+- Supabase Storage for uploaded FAISS index files
+- Ollama or Groq for answer generation
 
-It follows a basic RAG pipeline:
+## How It Works
 
-1. Load a PDF
-2. Split it into overlapping chunks
-3. Embed the chunks
-4. Store them in a FAISS index
-5. Retrieve relevant chunks for a question
-6. Send the retrieved context to an Ollama model
+1. A user logs in.
+2. The user uploads a PDF.
+3. The backend extracts text and splits it into chunks.
+4. Chunks are embedded and stored in a FAISS index.
+5. The FAISS index and chunk metadata are uploaded to Supabase Storage.
+6. Chat requests download the selected index, retrieve matching chunks, and send context to the configured LLM.
 
 ## Project Structure
 
 ```text
 talk2doc/
+  backend/
+    app/
+      routers/
+      services/
+      schemas/
+      config.py
+      main.py
+  frontend/
+    src/
+      components/
+      hooks/
+      api/
   docchat/
-    __main__.py
-    cli.py
-    bootstrap.py
-    document_loader.py
     chunker.py
+    document_loader.py
     embedder.py
-    vector_store.py
-    retriever.py
     generator.py
-  ingest.py
-  main.py
-  query.py
+    storage.py
+  Dockerfile.backend
+  docker-compose.yml
   requirements.txt
-  pyproject.toml
 ```
 
-Notes:
+## Environment
 
-- `docchat/` contains the active package code.
-- `ingest.py`, `main.py`, and `query.py` are compatibility wrappers.
-- `faiss.index` and `metadata.pkl` are generated ingestion artifacts.
+Create `.env` in the project root. At minimum:
 
-## Setup
+```text
+DATABASE_URL=postgresql://postgres:password@host:5432/postgres
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SERVICE_KEY=your-service-role-key
+AUTH_SECRET=replace-with-a-long-random-secret
 
-Create and activate the virtual environment:
+EMBEDDING_MODEL=hashing
+OLLAMA_URL=http://localhost:11434/api/generate
+MODEL_NAME=deepseek-v3.1:671b-cloud
+
+USE_GROQ=false
+GROQ_API_KEY=
+GROQ_MODEL=llama-3.3-70b-versatile
+```
+
+Use `EMBEDDING_MODEL=hashing` on small hosts. This avoids loading PyTorch and Hugging Face models into the web process, which helps prevent 512 MB memory crashes.
+
+If you want transformer embeddings on a larger host, install the optional extra and set `EMBEDDING_MODEL` to a Sentence Transformers model name:
+
+```powershell
+python -m pip install ".[transformer-embeddings]"
+```
+
+After changing embedding models, re-ingest PDFs. Index vectors created with one embedding model should be queried with the same embedding model.
+
+## Local Setup
+
+Create and activate a virtual environment:
 
 ```powershell
 python -m venv venv
@@ -56,187 +89,121 @@ Install dependencies:
 
 ```powershell
 python -m pip install -r requirements.txt
+python -m pip install -r backend/requirements.txt
 ```
 
-For transformer-based embeddings on a larger host, install the optional extra and set `EMBEDDING_MODEL` to a Sentence Transformers model name:
+Run the backend:
 
 ```powershell
-python -m pip install ".[transformer-embeddings]"
+python backend/run.py --host 0.0.0.0 --port 8000
 ```
 
-## Docker
-
-The app can run as two containers: FastAPI backend on port `8000` and Vite frontend on port `5173`.
-
-Make sure the project root has a `.env` file with your existing Supabase and auth settings, including:
-
-```text
-DATABASE_URL=...
-SUPABASE_URL=...
-SUPABASE_SERVICE_KEY=...
-AUTH_SECRET=...
-EMBEDDING_MODEL=hashing
-```
-
-You can start from the sample file:
+Run the frontend:
 
 ```powershell
-Copy-Item .env.example .env
+cd frontend
+npm install
+npm run dev
 ```
 
-Start everything:
-
-```powershell
-docker compose up --build
-```
-
-Open the app:
+Open:
 
 ```text
 http://localhost:5173
 ```
 
-The frontend talks to the backend at `http://localhost:8000`. The backend uses the hosted Supabase services from `.env`; Docker does not start a local Postgres database.
+## Docker
 
-When Docker is used, the backend reaches a local Ollama instance through `host.docker.internal`. Keep Ollama running on the host before asking questions, or set `USE_GROQ=true` with your Groq settings in `.env`.
+Start the full app:
 
-## Requirements
-
-- Python 3.12+
-- Ollama running locally
-- A model available through Ollama
-
-Default generation endpoint:
-
-```text
-http://localhost:11434/api/generate
+```powershell
+docker compose up --build
 ```
 
-Default generation model:
+Services:
+
+- Backend: `http://localhost:8000`
+- Frontend: `http://localhost:5173`
+- Health check: `http://localhost:8000/health`
+
+In Docker, the backend reaches Ollama through `host.docker.internal`. Keep Ollama running on the host, or set `USE_GROQ=true` with Groq credentials.
+
+## Supabase Storage
+
+The app expects a Supabase Storage bucket named:
 
 ```text
-deepseek-v3.1:671b-cloud
+Indexes
 ```
 
-## CLI Usage
+Indexes are stored by user:
 
-Top-level help:
+```text
+<user_id>/<index_name>.index
+<user_id>/<index_name>.pkl
+```
+
+The local `INDEX_DIR` is only a fallback/runtime path. The web app's active index storage flow uses Supabase Storage.
+
+## Deployment Notes
+
+For small-memory platforms, use:
+
+```text
+EMBEDDING_MODEL=hashing
+```
+
+Avoid installing transformer/PyTorch dependencies unless the host has enough memory. If the service reports out-of-memory during upload, confirm the deployed environment is not overriding `EMBEDDING_MODEL` with a transformer model such as `all-MiniLM-L6-v2` or `BAAI/bge-small-en`.
+
+The `/health` endpoint is intentionally lightweight. It does not create or resolve the index directory, so health checks should not fail because of a transient index filesystem issue.
+
+## API
+
+Core endpoints:
+
+- `GET /health`
+- `POST /auth/register`
+- `POST /auth/login`
+- `GET /indexes`
+- `DELETE /indexes/{name}`
+- `POST /ingest`
+- `GET /chat/conversations`
+- `POST /chat`
+
+API docs are available when the backend is running:
+
+```text
+http://localhost:8000/docs
+```
+
+## CLI
+
+The `docchat` CLI still exists for local experiments:
 
 ```powershell
 python -m docchat --help
-```
-
-### Ingest a PDF
-
-```powershell
 python -m docchat ingest --pdf "C:\path\to\file.pdf"
+python -m docchat ask --question "Summarize this document."
 ```
 
-Optional outputs:
-
-```powershell
-python -m docchat ingest --pdf "C:\path\to\file.pdf" --index "custom.index" --metadata "custom.pkl"
-```
-
-Optional chunk settings:
-
-```powershell
-python -m docchat ingest --pdf "C:\path\to\file.pdf" --chunk-size 700 --overlap 100
-```
-
-### Ask One Question
-
-```powershell
-python -m docchat ask --question "What is normalization?"
-```
-
-Use a custom index:
-
-```powershell
-python -m docchat ask --question "What is normalization?" --index "custom.index" --metadata "custom.pkl"
-```
-
-### Start Interactive Chat
-
-```powershell
-python -m docchat chat
-```
-
-Use a custom index:
-
-```powershell
-python -m docchat chat --index "custom.index" --metadata "custom.pkl"
-```
-
-## Example
-
-Ingest:
-
-```powershell
-.\venv\Scripts\python.exe -m docchat ingest --pdf "C:\Users\dev\Downloads\Unit - 2.pdf"
-```
-
-Ask:
-
-```powershell
-.\venv\Scripts\python.exe -m docchat ask --question "Summarize this unit."
-```
-
-Chat:
-
-```powershell
-.\venv\Scripts\python.exe -m docchat chat
-```
-
-Separate index files for that PDF:
-
-```powershell
-.\venv\Scripts\python.exe -m docchat ingest --pdf "C:\Users\dev\Downloads\Unit - 2.pdf" --index "unit2.index" --metadata "unit2.pkl"
-.\venv\Scripts\python.exe -m docchat ask --question "Summarize this unit." --index "unit2.index" --metadata "unit2.pkl"
-.\venv\Scripts\python.exe -m docchat chat --index "unit2.index" --metadata "unit2.pkl"
-```
-
-## Compatibility Scripts
-
-These still work, but they are wrappers around the new package CLI:
-
-```powershell
-python ingest.py
-python main.py
-python query.py
-```
-
-Preferred usage is:
-
-```powershell
-python -m docchat ...
-```
-
-## Current Limitations
-
-- One PDF per ingest command
-- New ingestion overwrites the default `faiss.index` and `metadata.pkl` unless custom paths are provided
-- Retrieval is basic fixed-size chunking
-- There is no multi-PDF combined index yet
-- There are no automated tests yet
+The web app path is the primary flow. It stores indexes in Supabase Storage rather than relying on local `faiss.index` and `metadata.pkl` files.
 
 ## Troubleshooting
 
-If you get missing dependency errors, use the project virtualenv:
+If uploads fail with an out-of-memory message:
 
-```powershell
-.\venv\Scripts\python.exe -m docchat --help
-```
-
-If PowerShell blocks virtualenv activation:
-
-```powershell
-Set-ExecutionPolicy -Scope Process Bypass
-.\venv\Scripts\Activate.ps1
-```
+- set `EMBEDDING_MODEL=hashing`
+- rebuild/redeploy the backend image
+- re-ingest the PDFs
 
 If answer generation fails:
 
-- verify Ollama is running
-- verify the configured model exists
-- verify `http://localhost:11434/api/generate` is reachable
+- verify Ollama is running, or enable Groq
+- verify the configured generation model exists
+- verify `OLLAMA_URL` is reachable from where the backend runs
+
+If indexes do not appear:
+
+- verify `SUPABASE_URL` and `SUPABASE_SERVICE_KEY`
+- verify the `Indexes` bucket exists
+- verify the user is authenticated before upload
